@@ -40,4 +40,29 @@ describe('evaluateTransaction', () => {
             }
         ]);
     })
+
+    it("should return settlement mismatch issue when settlement amount differ", () => {
+        const transaction: Transaction = {
+            id: 'txn-003',
+            reference: 'ref-003',
+            amount: 10000,
+            currency: 'NGN',
+            customerEmail: 'customer@example.com',
+            status: 'success',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            expectedSettlement: 2000,
+            actualSettlement: 3000
+        }
+
+        const issues = evaluateTransaction(transaction)
+
+        expect(issues).toEqual([{
+                 issue: "settlement_mismatch",
+                 severity: "high",
+                 reason: `Expected settlement of 2000 but received 3000`,
+        }
+        
+        ])
+    })
 })
