@@ -1,0 +1,15 @@
+// use prisma-next
+
+model Transaction {
+  id                     String   @id @default(cuid(2))
+  reference              String   @unique
+  amount                 Int
+  currency               String
+  customerEmail          String
+  status                 String
+  expectedSettlement     Int?
+  actualSettlement       Int?
+  createdAt              DateTime @default(now())
+  updatedAt              temporal.updatedAt()
+}
+

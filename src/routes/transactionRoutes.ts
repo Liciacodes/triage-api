@@ -5,7 +5,7 @@ import { transactionSchema } from "../schemas/transactionSchema";
 const router = Router()
 
 router.post('/evaluate' , (req, res) => {
-      console.log("EVALUATE ROUTE WITH ZOD");
+     
 const parsed = transactionSchema.safeParse(req.body)
 
 if (!parsed.success) {
