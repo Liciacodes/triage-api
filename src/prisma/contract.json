@@ -32,7 +32,7 @@
               "createdAt": {
                 "nullable": false,
                 "type": {
-                  "codecId": "pg/timestamptz-temporal@1",
+                  "codecId": "pg/timestamptz-string@1",
                   "kind": "scalar"
                 }
               },
@@ -81,7 +81,7 @@
               "updatedAt": {
                 "nullable": false,
                 "type": {
-                  "codecId": "pg/timestamptz-temporal@1",
+                  "codecId": "pg/timestamptz-string@1",
                   "kind": "scalar"
                 }
               }
@@ -146,7 +146,7 @@
                   "nullable": false
                 },
                 "createdAt": {
-                  "codecId": "pg/timestamptz-temporal@1",
+                  "codecId": "pg/timestamptz-string@1",
                   "default": {
                     "expression": "now()",
                     "kind": "function"
@@ -185,7 +185,7 @@
                   "nullable": false
                 },
                 "updatedAt": {
-                  "codecId": "pg/timestamptz-temporal@1",
+                  "codecId": "pg/timestamptz-string@1",
                   "nativeType": "timestamptz",
                   "nullable": false
                 }
@@ -211,10 +211,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "d306b81ae68f573f0a712749819997b4876d98a228db50178f70c1a622accc7c"
+    "storageHash": "597bfba569feb470ef805485c09eca19af6bd8134037fd0368f267a3f91f5d02"
   },
   "execution": {
-    "executionHash": "7718a2769eae96504e97f9b60348afcfafddaa2e470b08e3b79b894ba8082767",
+    "executionHash": "29352f05897d557a267c1e870da3e32ea3cc9fcb7f9c17ec0181fdcdd6392f4d",
     "mutations": {
       "defaults": [
         {
@@ -230,11 +230,11 @@
         },
         {
           "onCreate": {
-            "id": "instantNow",
+            "id": "timestampNow",
             "kind": "generator"
           },
           "onUpdate": {
-            "id": "instantNow",
+            "id": "timestampNow",
             "kind": "generator"
           },
           "ref": {

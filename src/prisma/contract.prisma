@@ -9,7 +9,7 @@ model Transaction {
   status                 String
   expectedSettlement     Int?
   actualSettlement       Int?
-  createdAt              DateTime @default(now())
-  updatedAt              temporal.updatedAt()
+  createdAt              TimestamptzString @default(now())
+  updatedAt              temporal.updatedAtString()
 }
 
