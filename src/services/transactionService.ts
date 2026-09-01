@@ -4,6 +4,7 @@ import {
   transactionSchema,
   type ValidatedTransaction,
 } from "../schemas/transactionSchema";
+import { getUnresolvedAlerts } from "./alertService";
 
 export const createTransaction = async (transaction: ValidatedTransaction) => {
   return db.orm.public.Transaction.create({
@@ -29,20 +30,28 @@ export const getTransactionByReference = async (reference: string) => {
 
 export const getTransactionsNeedingAttention = async () => {
   const transactions = await getAllTransactions();
+  const unresolvedAlerts = await getUnresolvedAlerts();
 
   return transactions
     .map((transaction) => {
-      const parsedTransaction = transactionSchema.parse({
-        ...transaction,
-        expectedSettlement: transaction.expectedSettlement ?? undefined,
-
-        actualSettlement: transaction.actualSettlement ?? undefined,
-      });
+    const alerts = unresolvedAlerts.filter(
+      (alert) => alert.transactionId === transaction.id
+      );
 
       return {
         ...transaction,
-        issues: evaluateTransaction(parsedTransaction),
+        issues: alerts.map((alert) => ({
+          issue: alert.type,
+          severity: alert.severity, 
+        }))
       };
-    })
-    .filter((item) => item.issues.length > 0);
+      })
+    .filter((transaction) => transaction.issues.length > 0);
 };
+
+
+export const getAlertsForTransaction = async (transactionId: string) => {
+  return db.orm.public.Alert
+  .where({ transactionId})
+  .all();
+}

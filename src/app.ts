@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import router from './routes/transactionRoutes';
+import transactionRouter from './routes/transactionRoutes';
+import alertRouter from './routes/alertRoutes';
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.get('/api/health', (req, res) => {
     })
 })
 
-app.use('/api/transactions', router)
+app.use('/api/transactions', transactionRouter);
+app.use('/api/alerts', alertRouter);
 
 export default app;

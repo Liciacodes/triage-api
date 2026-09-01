@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { evaluateTransaction } from "../rules/evaluateTransaction";
 import { transactionSchema } from "../schemas/transactionSchema";
-import { createTransaction, getAllTransactions, getTransactionByReference, getTransactionsNeedingAttention } from "../services/transactionService";
+import { createTransaction, getAlertsForTransaction, getAllTransactions, getTransactionByReference, getTransactionsNeedingAttention } from "../services/transactionService";
+import { createAlertsForTransaction } from "../services/alertService";
+
 
 const router = Router();
 
@@ -23,19 +25,32 @@ router.get('/attention', async(_req, res) => {
     })
 })
 
-router.get('/:reference', async(req, res) => {
-    const transaction = await getTransactionByReference(req.params.reference)
+router.get("/:reference", async (req, res) => {
+  const transaction = await getTransactionByReference(req.params.reference);
 
-    if (!transaction) {
-        return res.status(404).json({
-            error: 'Transaction not found'
-        })
-    }
+  if (!transaction) {
+    return res.status(404).json({
+      error: "Transaction not found",
+    });
+  }
 
-    return res.status(200).json({
-        transaction,
-    })
-})
+  const parsedTransaction = transactionSchema.parse({
+    ...transaction,
+    expectedSettlement: transaction.expectedSettlement ?? undefined,
+    actualSettlement: transaction.actualSettlement ?? undefined
+  })
+
+  const issues = evaluateTransaction(parsedTransaction);
+
+  const alerts = await getAlertsForTransaction(transaction.id);
+
+  return res.status(200).json({
+    transaction,
+    issues,
+    alerts,
+    needsAttention: alerts.some((alert) => !alert.resolved),
+  });
+});
 
 
 router.post("/evaluate", async (req, res) => {
@@ -53,9 +68,14 @@ router.post("/evaluate", async (req, res) => {
 
   const issues = evaluateTransaction(transaction);
 
+  const alerts = await createAlertsForTransaction(
+    savedTransaction.id, issues
+  ); 
+
   res.status(200).json({
     needsAttention: issues.length > 0,
     issues,
+    alerts,
   });
 });
 

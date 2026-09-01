@@ -11,5 +11,19 @@ model Transaction {
   actualSettlement       Int?
   createdAt              TimestamptzString @default(now())
   updatedAt              temporal.updatedAtString()
+  alerts                 Alert[]
+}
+
+model Alert {
+  id            String      @id @default(uuid())
+  type          String
+  severity      String
+  reason        String
+  resolved      Boolean     @default(false)
+  resolvedAt    TimestamptzString?
+  createdAt     TimestamptzString @default(now())
+
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
 }
 
