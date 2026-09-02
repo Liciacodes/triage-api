@@ -8,6 +8,10 @@ vi.mock("../services/transactionService", () => ({
   getTransactionsNeedingAttention: vi.fn(),
 }));
 
+vi.mock('../services/alertService', () => ({
+ createAlertsForTransaction: vi.fn(),
+}));
+
 import {
   createTransaction,
   getAllTransactions,
@@ -16,6 +20,7 @@ import {
 } from "../services/transactionService";
 
 import app from "../app";
+import { createAlertsForTransaction } from "../services/alertService";
 
 const mockedCreateTransaction = vi.mocked(createTransaction);
 const mockedGetAllTransactions = vi.mocked(getAllTransactions);
@@ -23,6 +28,8 @@ const mockedGetTransactionByReference = vi.mocked(getTransactionByReference);
 const mockedGetTransactionsNeedingAttention = vi.mocked(
   getTransactionsNeedingAttention,
 );
+
+const mockedCreateAlertsForTransaction = vi.mocked(createAlertsForTransaction);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -39,6 +46,8 @@ beforeEach(() => {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
+
+  mockedCreateAlertsForTransaction.mockResolvedValue([]);
 });
 
 
@@ -81,6 +90,7 @@ describe("POST /api/transactions/evaluate", () => {
     expect(response.body).toEqual({
       needsAttention: false,
       issues: [],
+      alerts: [],
     });
   });
 
@@ -172,4 +182,46 @@ describe("POST /api/transactions/evaluate", () => {
     expect(response.body.count).toBe(1);
     expect(Array.isArray(response.body.transactions)).toBe(true);
   });
+
+  it('should create an alert when a transaction has an issue', async () => {
+  
+    mockedCreateAlertsForTransaction.mockResolvedValue([{
+      id: "alert-001",
+      type: "settlement_mismatch",
+      severity: "high",
+      reason: "Expected settlement of 9850 but received 9000",
+      resolved: false,
+      resolvedAt: null,
+      transactionId: "db-test-001",
+      createdAt: new Date().toISOString(),
+    }]);
+
+    const response = await request(app)
+    .post("/api/transactions/evaluate")
+    .send({
+       id: "txn-010",
+      reference: "ref-010",
+      amount: 10000,
+      currency: "NGN",
+      customerEmail: "customer@example.com",
+      status: "success",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      expectedSettlement: 9850,
+      actualSettlement: 9000,
+    })
+
+    expect(response.status).toBe(200);
+    expect(mockedCreateAlertsForTransaction).toHaveBeenCalledWith(
+       "db-test-001",
+  [
+    {
+      issue: "settlement_mismatch",
+      severity: "high",
+      reason: "Expected settlement of 9850 but received 9000",
+    },
+  ],
+    );
+    expect(response.body.alerts[0].resolved).toBe(false);
+  })
 });

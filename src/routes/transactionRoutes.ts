@@ -1,29 +1,34 @@
 import { Router } from "express";
 import { evaluateTransaction } from "../rules/evaluateTransaction";
 import { transactionSchema } from "../schemas/transactionSchema";
-import { createTransaction, getAlertsForTransaction, getAllTransactions, getTransactionByReference, getTransactionsNeedingAttention } from "../services/transactionService";
+import {
+  createTransaction,
+  getAlertsForTransaction,
+  getAllTransactions,
+  getTransactionByReference,
+  getTransactionsNeedingAttention,
+  updateTransaction,
+} from "../services/transactionService";
 import { createAlertsForTransaction } from "../services/alertService";
-
 
 const router = Router();
 
+router.get("/", async (_req, res) => {
+  const transactions = await getAllTransactions();
 
-router.get('/', async(_req, res) => {
-    const transactions = await getAllTransactions()
+  return res.status(200).json({
+    transactions,
+  });
+});
 
-    return res.status(200).json({
-        transactions,
-    })
-})
+router.get("/attention", async (_req, res) => {
+  const transactions = await getTransactionsNeedingAttention();
 
-router.get('/attention', async(_req, res) => {
-    const transactions = await getTransactionsNeedingAttention();
-
-    return res.status(200).json({
-        count: transactions.length,
-        transactions
-    })
-})
+  return res.status(200).json({
+    count: transactions.length,
+    transactions,
+  });
+});
 
 router.get("/:reference", async (req, res) => {
   const transaction = await getTransactionByReference(req.params.reference);
@@ -37,8 +42,8 @@ router.get("/:reference", async (req, res) => {
   const parsedTransaction = transactionSchema.parse({
     ...transaction,
     expectedSettlement: transaction.expectedSettlement ?? undefined,
-    actualSettlement: transaction.actualSettlement ?? undefined
-  })
+    actualSettlement: transaction.actualSettlement ?? undefined,
+  });
 
   const issues = evaluateTransaction(parsedTransaction);
 
@@ -52,7 +57,6 @@ router.get("/:reference", async (req, res) => {
   });
 });
 
-
 router.post("/evaluate", async (req, res) => {
   const parsed = transactionSchema.safeParse(req.body);
 
@@ -64,13 +68,55 @@ router.post("/evaluate", async (req, res) => {
   }
 
   const transaction = parsed.data;
+
+  const existingTransaction = await getTransactionByReference(
+    transaction.reference,
+  );
+
+  if (existingTransaction) {
+  const hasChanged =
+    existingTransaction.status !== transaction.status ||
+    existingTransaction.amount !== transaction.amount ||
+    existingTransaction.expectedSettlement !==
+      (transaction.expectedSettlement ?? null) ||
+    existingTransaction.actualSettlement !==
+      (transaction.actualSettlement ?? null);
+
+  if (!hasChanged) {
+    return res.status(200).json({
+      duplicate: true,
+      transaction: existingTransaction,
+    });
+  }
+
+  const updatedTransaction = await updateTransaction(transaction);
+
+  const issues = evaluateTransaction(transaction);
+
+  const alerts = await createAlertsForTransaction(
+    existingTransaction.id,
+    issues,
+  );
+
+  return res.status(200).json({
+    duplicate: false,
+    updated: true,
+    transaction: updatedTransaction,
+    needsAttention: issues.length > 0,
+    issues,
+    alerts,
+  });
+}
+
+
+
   const savedTransaction = await createTransaction(transaction);
 
   const issues = evaluateTransaction(transaction);
 
   const alerts = await createAlertsForTransaction(
-    savedTransaction.id, issues
-  ); 
+    savedTransaction.id,
+    issues);
 
   res.status(200).json({
     needsAttention: issues.length > 0,
@@ -78,9 +124,5 @@ router.post("/evaluate", async (req, res) => {
     alerts,
   });
 });
-
-
-
-
 
 export default router;

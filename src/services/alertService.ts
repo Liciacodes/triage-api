@@ -12,6 +12,17 @@ export const createAlertsForTransaction = async (
   const alerts = [];
 
   for (const issue of issues) {
+    const existingAlert = await db.orm.public.Alert.where({
+      transactionId,
+      type: issue.issue,
+      resolved: false,
+    }).first();
+
+    if (existingAlert) {
+      alerts.push(existingAlert);
+      continue;
+    }
+
     const alert = await db.orm.public.Alert.create({
       type: issue.issue,
       severity: issue.severity,
@@ -32,7 +43,35 @@ export const resolveAlert = async (alertId: string) => {
 };
 
 export const getUnresolvedAlerts = async () => {
-    return db.orm.public.Alert
-    .where({ resolved: false })
-    .all();
+  return db.orm.public.Alert.where({ resolved: false }).all();
+};
+
+
+export const getUnresolvedAlertsForTransaction = async (
+  transactionId: string,
+) => {
+  return db.orm.public.Alert
+  .where({ 
+    transactionId, 
+    resolved: false 
+  })
+  .all();
+}
+
+export const resolveStaleAlerts = async (
+  transactionId: string,
+  issues: RuleResult[],
+) => {
+  const unresolvedAlerts =
+   await getUnresolvedAlertsForTransaction(transactionId); 
+   
+   for (const alert of unresolvedAlerts) {
+    const issueStillExists = issues.some(
+      (issue) => issue.issue  === alert.type,
+    );
+
+    if (!issueStillExists) {
+      await resolveAlert(alert.id);
+    } 
+  }
 }

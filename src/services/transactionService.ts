@@ -42,7 +42,8 @@ export const getTransactionsNeedingAttention = async () => {
         ...transaction,
         issues: alerts.map((alert) => ({
           issue: alert.type,
-          severity: alert.severity, 
+          severity: alert.severity,
+          reason: alert.reason, 
         }))
       };
       })
@@ -54,4 +55,16 @@ export const getAlertsForTransaction = async (transactionId: string) => {
   return db.orm.public.Alert
   .where({ transactionId})
   .all();
+}
+
+export const updateTransaction = async (transaction: ValidatedTransaction) => {
+  return db.orm.public.Transaction.where({ reference: transaction.reference }).update({
+    amount: transaction.amount,
+    currency: transaction.currency,
+    customerEmail: transaction.customerEmail,
+    status: transaction.status, 
+    expectedSettlement: transaction.expectedSettlement,
+    actualSettlement: transaction.actualSettlement,
+    updatedAt: transaction.updatedAt.toISOString(),
+  });
 }
