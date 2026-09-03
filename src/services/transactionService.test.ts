@@ -62,6 +62,8 @@ describe("getTransactionsNeedingAttention", () => {
         type: "settlement_mismatch",
         severity: "high",
         reason: "Expected settlement of 9850 but received 9000",
+        status: 'OPEN',
+        acknowledgedAt: null,
         resolved: false,
         resolvedAt: null,
         transactionId: "db-test-001",

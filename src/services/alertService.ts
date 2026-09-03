@@ -12,11 +12,13 @@ export const createAlertsForTransaction = async (
   const alerts = [];
 
   for (const issue of issues) {
-    const existingAlert = await db.orm.public.Alert.where({
-      transactionId,
-      type: issue.issue,
-      resolved: false,
-    }).first();
+    const existingAlert = await db.orm.public.Alert
+      .where({
+        transactionId,
+        type: issue.issue,
+        status: "OPEN",
+      })
+      .first();
 
     if (existingAlert) {
       alerts.push(existingAlert);
@@ -27,51 +29,80 @@ export const createAlertsForTransaction = async (
       type: issue.issue,
       severity: issue.severity,
       reason: issue.reason,
-      resolved: false,
+      status: "OPEN",
       transactionId,
     });
+
     alerts.push(alert);
   }
+
   return alerts;
 };
 
+export const acknowledgeAlert = async (alertId: string) => {
+  return db.orm.public.Alert
+    .where({ id: alertId })
+    .update({
+      status: "ACKNOWLEDGED",
+      acknowledgedAt: new Date().toISOString(),
+    });
+};
+
 export const resolveAlert = async (alertId: string) => {
-  return db.orm.public.Alert.where({ id: alertId }).update({
-    resolved: true,
-    resolvedAt: new Date().toISOString(),
-  });
+  return db.orm.public.Alert
+    .where({ id: alertId })
+    .update({
+      status: "RESOLVED",
+      resolvedAt: new Date().toISOString(),
+    });
 };
 
 export const getUnresolvedAlerts = async () => {
-  return db.orm.public.Alert.where({ resolved: false }).all();
+  return db.orm.public.Alert
+    .where({ status: "OPEN" })
+    .all();
 };
-
 
 export const getUnresolvedAlertsForTransaction = async (
   transactionId: string,
 ) => {
   return db.orm.public.Alert
-  .where({ 
-    transactionId, 
-    resolved: false 
-  })
-  .all();
-}
+    .where({
+      transactionId,
+      status: "OPEN",
+    })
+    .all();
+};
+
+
+export const getActiveAlertsForTransaction = async (
+  transactionId: string,
+) => {
+  const alerts = await db.orm.public.Alert
+    .where({ transactionId })
+    .all();
+
+  return alerts.filter(
+    (alert) =>
+      alert.status === "OPEN" ||
+      alert.status === "ACKNOWLEDGED",
+  );
+};
 
 export const resolveStaleAlerts = async (
   transactionId: string,
   issues: RuleResult[],
 ) => {
-  const unresolvedAlerts =
-   await getUnresolvedAlertsForTransaction(transactionId); 
-   
-   for (const alert of unresolvedAlerts) {
+  const activeAlerts =
+    await getActiveAlertsForTransaction(transactionId);
+
+  for (const alert of activeAlerts) {
     const issueStillExists = issues.some(
-      (issue) => issue.issue  === alert.type,
+      (issue) => issue.issue === alert.type,
     );
 
     if (!issueStillExists) {
       await resolveAlert(alert.id);
-    } 
+    }
   }
-}
+};

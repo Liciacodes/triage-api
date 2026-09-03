@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'05316daa65f4df86b8e43fc4965539a420c2eb2ac54615521195ab712756cee8'>;
+  StorageHashBase<'a85a4b555071105b2b29b18f45eb4232a8ed77a88fd6cb7b95df904869c1d2c1'>;
 export type ExecutionHash =
   ExecutionHashBase<'4482a7e98a5d9a9ab8c47a5683857fee0b1216249802c15426b03a44d417875d'>;
 export type ProfileHash =
@@ -246,7 +246,8 @@ export type FieldOutputTypes = {
       readonly type: CodecTypes['pg/text@1']['output'];
       readonly severity: CodecTypes['pg/text@1']['output'];
       readonly reason: CodecTypes['pg/text@1']['output'];
-      readonly resolved: CodecTypes['pg/bool@1']['output'];
+      readonly status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
+      readonly acknowledgedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
       readonly resolvedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly transactionId: CodecTypes['pg/text@1']['output'];
@@ -272,7 +273,8 @@ export type FieldInputTypes = {
       readonly type: CodecTypes['pg/text@1']['input'];
       readonly severity: CodecTypes['pg/text@1']['input'];
       readonly reason: CodecTypes['pg/text@1']['input'];
-      readonly resolved: CodecTypes['pg/bool@1']['input'];
+      readonly status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
+      readonly acknowledgedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly resolvedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly transactionId: CodecTypes['pg/text@1']['input'];
@@ -294,12 +296,13 @@ export type FieldInputTypes = {
 export type StorageColumnTypes = {
   readonly public: {
     readonly alert: {
+      readonly acknowledgedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly reason: CodecTypes['pg/text@1']['output'];
-      readonly resolved: CodecTypes['pg/bool@1']['output'];
       readonly resolvedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
       readonly severity: CodecTypes['pg/text@1']['output'];
+      readonly status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
       readonly transactionId: CodecTypes['pg/text@1']['output'];
       readonly type: CodecTypes['pg/text@1']['output'];
     };
@@ -320,12 +323,13 @@ export type StorageColumnTypes = {
 export type StorageColumnInputTypes = {
   readonly public: {
     readonly alert: {
+      readonly acknowledgedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly reason: CodecTypes['pg/text@1']['input'];
-      readonly resolved: CodecTypes['pg/bool@1']['input'];
       readonly resolvedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly severity: CodecTypes['pg/text@1']['input'];
+      readonly status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
       readonly transactionId: CodecTypes['pg/text@1']['input'];
       readonly type: CodecTypes['pg/text@1']['input'];
     };
@@ -383,14 +387,19 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
-                readonly resolved: {
-                  readonly nativeType: 'bool';
-                  readonly codecId: 'pg/bool@1';
+                readonly status: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                   readonly default: {
                     readonly kind: 'literal';
-                    readonly value: DefaultLiteralValue<'pg/bool@1', false>;
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'OPEN'>;
                   };
+                };
+                readonly acknowledgedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
                 };
                 readonly resolvedAt: {
                   readonly nativeType: 'timestamptz';
@@ -494,6 +503,12 @@ type ContractBase = Omit<
               foreignKeys: readonly [];
             };
           };
+          readonly valueSet: {
+            readonly AlertStatus: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['OPEN', 'ACKNOWLEDGED', 'RESOLVED'];
+            };
+          };
         };
       };
     };
@@ -532,9 +547,16 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly resolved: {
+              readonly status: {
                 readonly nullable: false;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly acknowledgedAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
               };
               readonly resolvedAt: {
                 readonly nullable: true;
@@ -576,7 +598,8 @@ type ContractBase = Omit<
                 readonly type: { readonly column: 'type' };
                 readonly severity: { readonly column: 'severity' };
                 readonly reason: { readonly column: 'reason' };
-                readonly resolved: { readonly column: 'resolved' };
+                readonly status: { readonly column: 'status' };
+                readonly acknowledgedAt: { readonly column: 'acknowledgedAt' };
                 readonly resolvedAt: { readonly column: 'resolvedAt' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly transactionId: { readonly column: 'transactionId' };
@@ -661,6 +684,16 @@ type ContractBase = Omit<
                 readonly updatedAt: { readonly column: 'updatedAt' };
               };
             };
+          };
+        };
+        readonly enum: {
+          readonly AlertStatus: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'OPEN'; readonly value: 'OPEN' },
+              { readonly name: 'ACKNOWLEDGED'; readonly value: 'ACKNOWLEDGED' },
+              { readonly name: 'RESOLVED'; readonly value: 'RESOLVED' },
+            ];
           };
         };
       };

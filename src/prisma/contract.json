@@ -16,9 +16,35 @@
   "domain": {
     "namespaces": {
       "public": {
+        "enum": {
+          "AlertStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "OPEN",
+                "value": "OPEN"
+              },
+              {
+                "name": "ACKNOWLEDGED",
+                "value": "ACKNOWLEDGED"
+              },
+              {
+                "name": "RESOLVED",
+                "value": "RESOLVED"
+              }
+            ]
+          }
+        },
         "models": {
           "Alert": {
             "fields": {
+              "acknowledgedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -40,13 +66,6 @@
                   "kind": "scalar"
                 }
               },
-              "resolved": {
-                "nullable": false,
-                "type": {
-                  "codecId": "pg/bool@1",
-                  "kind": "scalar"
-                }
-              },
               "resolvedAt": {
                 "nullable": true,
                 "type": {
@@ -59,6 +78,19 @@
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "AlertStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
                 }
               },
               "transactionId": {
@@ -95,6 +127,9 @@
             },
             "storage": {
               "fields": {
+                "acknowledgedAt": {
+                  "column": "acknowledgedAt"
+                },
                 "createdAt": {
                   "column": "createdAt"
                 },
@@ -104,14 +139,14 @@
                 "reason": {
                   "column": "reason"
                 },
-                "resolved": {
-                  "column": "resolved"
-                },
                 "resolvedAt": {
                   "column": "resolvedAt"
                 },
                 "severity": {
                   "column": "severity"
+                },
+                "status": {
+                  "column": "status"
                 },
                 "transactionId": {
                   "column": "transactionId"
@@ -261,7 +296,19 @@
         "entries": {
           "table": {
             "alert": {
+              "checks": [
+                {
+                  "expression": "\"status\" IN ('OPEN', 'ACKNOWLEDGED', 'RESOLVED')",
+                  "name": "alert_status_check_b343ac7d",
+                  "prefix": "alert_status_check"
+                }
+              ],
               "columns": {
+                "acknowledgedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
@@ -281,15 +328,6 @@
                   "nativeType": "text",
                   "nullable": false
                 },
-                "resolved": {
-                  "codecId": "pg/bool@1",
-                  "default": {
-                    "kind": "literal",
-                    "value": false
-                  },
-                  "nativeType": "bool",
-                  "nullable": false
-                },
                 "resolvedAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "nativeType": "timestamptz",
@@ -299,6 +337,21 @@
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "OPEN"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "AlertStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
                 },
                 "transactionId": {
                   "codecId": "pg/text@1",
@@ -418,13 +471,23 @@
                 }
               ]
             }
+          },
+          "valueSet": {
+            "AlertStatus": {
+              "kind": "valueSet",
+              "values": [
+                "OPEN",
+                "ACKNOWLEDGED",
+                "RESOLVED"
+              ]
+            }
           }
         },
         "id": "public",
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "05316daa65f4df86b8e43fc4965539a420c2eb2ac54615521195ab712756cee8"
+    "storageHash": "a85a4b555071105b2b29b18f45eb4232a8ed77a88fd6cb7b95df904869c1d2c1"
   },
   "execution": {
     "executionHash": "4482a7e98a5d9a9ab8c47a5683857fee0b1216249802c15426b03a44d417875d",

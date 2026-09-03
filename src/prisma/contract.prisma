@@ -1,4 +1,3 @@
-// use prisma-next
 
 model Transaction {
   id                     String   @id @default(cuid(2))
@@ -14,16 +13,22 @@ model Transaction {
   alerts                 Alert[]
 }
 
-model Alert {
-  id            String      @id @default(uuid())
-  type          String
-  severity      String
-  reason        String
-  resolved      Boolean     @default(false)
-  resolvedAt    TimestamptzString?
-  createdAt     TimestamptzString @default(now())
-
-  transactionId String
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
 }
 
+model Alert {
+  id              String      @id @default(uuid())
+  type            String
+  severity        String
+  reason          String
+  status          AlertStatus @default(OPEN)
+  acknowledgedAt  TimestamptzString?
+  resolvedAt      TimestamptzString?
+  createdAt       TimestamptzString @default(now())
+
+  transactionId   String
+  transaction     Transaction @relation(fields: [transactionId], references: [id])
+}

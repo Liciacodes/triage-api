@@ -9,7 +9,7 @@ import {
   getTransactionsNeedingAttention,
   updateTransaction,
 } from "../services/transactionService";
-import { createAlertsForTransaction } from "../services/alertService";
+import { createAlertsForTransaction, resolveStaleAlerts } from "../services/alertService";
 
 const router = Router();
 
@@ -53,7 +53,7 @@ router.get("/:reference", async (req, res) => {
     transaction,
     issues,
     alerts,
-    needsAttention: alerts.some((alert) => !alert.resolved),
+    needsAttention: alerts.some((alert) => alert.status === "OPEN"),
   });
 });
 
@@ -92,11 +92,14 @@ router.post("/evaluate", async (req, res) => {
   const updatedTransaction = await updateTransaction(transaction);
 
   const issues = evaluateTransaction(transaction);
+  await resolveStaleAlerts(existingTransaction.id, issues); 
 
   const alerts = await createAlertsForTransaction(
     existingTransaction.id,
     issues,
   );
+
+
 
   return res.status(200).json({
     duplicate: false,
