@@ -64,7 +64,6 @@ describe("getTransactionsNeedingAttention", () => {
         reason: "Expected settlement of 9850 but received 9000",
         status: 'OPEN',
         acknowledgedAt: null,
-        resolved: false,
         resolvedAt: null,
         transactionId: "db-test-001",
         createdAt: "2026-09-02 10:00:00+00",

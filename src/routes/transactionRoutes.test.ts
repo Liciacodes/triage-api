@@ -190,7 +190,8 @@ describe("POST /api/transactions/evaluate", () => {
       type: "settlement_mismatch",
       severity: "high",
       reason: "Expected settlement of 9850 but received 9000",
-      resolved: false,
+      status: 'OPEN',
+      acknowledgedAt: null,
       resolvedAt: null,
       transactionId: "db-test-001",
       createdAt: new Date().toISOString(),
@@ -222,6 +223,6 @@ describe("POST /api/transactions/evaluate", () => {
     },
   ],
     );
-    expect(response.body.alerts[0].resolved).toBe(false);
+  expect(response.body.alerts[0].status).toBe("OPEN");
   })
 });
