@@ -23,7 +23,7 @@ describe("PATCH /api/alerts/:id/acknowledge", () => {
       reason: "Expected settlement of 9850 but received 9000",
       status: "ACKNOWLEDGED",
       acknowledgedAt: new Date().toISOString(),
-      resolved: false,
+     
       resolvedAt: null,
       transactionId: "db-test-001",
       createdAt: new Date().toISOString(),
