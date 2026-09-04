@@ -20,10 +20,17 @@ export const createAlertsForTransaction = async (
       })
       .first();
 
-    if (existingAlert) {
-      alerts.push(existingAlert);
-      continue;
-    }
+      if (existingAlert) {
+  const updatedAlert = await db.orm.public.Alert
+    .where({ id: existingAlert.id })
+    .update({
+      severity: issue.severity,
+      reason: issue.reason,
+    });
+
+  alerts.push(updatedAlert);
+  continue;
+}
 
     const alert = await db.orm.public.Alert.create({
       type: issue.issue,
