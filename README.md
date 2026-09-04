@@ -1,8 +1,16 @@
 # Triage API
 
-Backend API for Triage, an exception-first payment operations tool that helps surface transactions requiring human attention, explain why they were flagged, and track issues through resolution.
+Backend API for **Triage**, an exception-first payment operations tool that helps surface transactions requiring human attention, explain why they were flagged, and track alerts from detection through acknowledgement and resolution.
 
-## Current Progress
+## Overview
+
+Triage evaluates transaction events against a set of operational rules and surfaces exceptions that may require human attention.
+
+Rather than treating every transaction equally, the system focuses operators on transactions that are failed, reversed, stuck in pending, or have settlement discrepancies.
+
+The API also handles repeated transaction events safely, re-evaluating transactions as their state changes and maintaining the lifecycle of any associated alerts.
+
+## Features
 
 ### Transaction Processing
 
@@ -29,17 +37,36 @@ The evaluator can return multiple issues for a single transaction.
 
 ### Alert Lifecycle
 
-Detected issues are persisted as operational alerts.
+Detected issues are persisted as operational alerts with three states:
 
-Triage currently supports:
+```text
+OPEN → ACKNOWLEDGED → RESOLVED
+```
+
+#### OPEN
+
+The underlying issue is active and requires attention.
+
+#### ACKNOWLEDGED
+
+An operator has reviewed the alert. Acknowledging an alert does not mean the underlying transaction issue has been fixed.
+
+#### RESOLVED
+
+The condition that originally triggered the alert no longer applies.
+
+Triage supports:
 
 - Creating alerts from detected transaction issues
-- Retrieving unresolved alerts
-- Preventing duplicate unresolved alerts
-- Marking alerts as resolved
+- Preventing duplicate active alerts
+- Human acknowledgement of open alerts
+- Recording acknowledgement timestamps
+- Automatically resolving stale alerts when the underlying condition clears
+- Recording resolution timestamps
 - Preserving resolved alerts as transaction history
-- Automatically resolving stale alerts when a transaction recovers
-- Building the attention queue from unresolved alerts
+- Building the attention queue from active alerts
+
+This separates **operator acknowledgement** from **actual issue resolution**. An operator can acknowledge an issue while Triage continues monitoring the underlying transaction until the condition changes.
 
 ### Idempotent Transaction Processing
 
@@ -51,22 +78,74 @@ When a transaction is received:
 - An existing reference with unchanged data is treated as a duplicate.
 - An existing reference with changed data updates the existing transaction.
 - Updated transactions are re-evaluated by the rules engine.
-- Existing unresolved alerts are reused instead of duplicated.
+- Existing active alerts are reused instead of duplicated.
 - Alerts that no longer apply after an update are automatically resolved.
 
-This prevents retries from creating duplicate transactions or duplicate operational alerts while still allowing legitimate transaction state changes.
+This prevents retries from creating duplicate transactions or operational alerts while still allowing legitimate transaction state changes.
 
-### Testing
+## API Endpoints
+
+### Transactions
+
+```text
+POST /api/transactions/evaluate
+GET  /api/transactions
+GET  /api/transactions/attention
+GET  /api/transactions/:reference
+```
+
+### Alerts
+
+```text
+PATCH /api/alerts/:id/acknowledge
+```
+
+## Project Structure
+
+```text
+src/
+├── prisma/
+│   ├── contract.prisma
+│   └── db.ts
+├── routes/
+│   ├── alertRoutes.ts
+│   └── transactionRoutes.ts
+├── rules/
+│   ├── checkFailedTransaction.ts
+│   ├── checkReversedTransaction.ts
+│   ├── checkSettlementMismatch.ts
+│   ├── checkStuckPending.ts
+│   └── evaluateTransaction.ts
+├── schemas/
+│   └── transactionSchema.ts
+├── services/
+│   ├── alertService.ts
+│   └── transactionService.ts
+├── types/
+│   ├── rule.ts
+│   └── transaction.ts
+├── app.ts
+└── server.ts
+```
+
+## Testing
 
 The API includes automated tests for:
 
 - Individual transaction rules
 - Transaction rule evaluation
 - Transaction routes
+- Alert routes
 - Attention queue behavior
 - Transaction service behavior
 
-Tests are written with Vitest and Supertest.
+Tests are written with **Vitest** and **Supertest**.
+
+Run the test suite:
+
+```bash
+npm test -- --run
+```
 
 ## Tech Stack
 
@@ -81,20 +160,50 @@ Tests are written with Vitest and Supertest.
 
 ## Running Locally
 
-Install dependencies:
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-Start the development server:
+### 2. Configure environment variables
+
+Create the required environment variables for your database connection and local environment.
+
+### 3. Start the development server
 
 ```bash
 npm run dev
 ```
 
-Run the test suite:
+### 4. Run the test suite
 
 ```bash
 npm test -- --run
 ```
+
+### 5. Build the project
+
+```bash
+npm run build
+```
+
+### 6. Start the production build
+
+```bash
+npm start
+```
+
+## Live Application
+
+### Frontend
+
+[https://triage-client.vercel.app](https://triage-client.vercel.app)
+
+### API
+
+[https://triage-api-fg04.onrender.com](https://triage-api-fg04.onrender.com)
+
+## Related Repository
+
+The Triage frontend is a separate Next.js application that provides the operational dashboard, transaction list, transaction details, alert acknowledgement, and alert history interfaces.
