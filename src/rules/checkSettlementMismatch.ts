@@ -15,9 +15,23 @@ export const checkSettlementMismatch = (
     return null;
   }
 
+  const difference =
+    transaction.expectedSettlement - transaction.actualSettlement;
+
+  const formattedExpected =
+    transaction.expectedSettlement.toLocaleString();
+
+  const formattedActual =
+    transaction.actualSettlement.toLocaleString();
+
+  const formattedDifference =
+    Math.abs(difference).toLocaleString();
+
+  const direction = difference > 0 ? "below" : "above";
+
   return {
     issue: "settlement_mismatch",
     severity: "high",
-    reason: `Expected settlement of ${transaction.expectedSettlement} but received ${transaction.actualSettlement}`,
+    reason: `Settlement is ${transaction.currency} ${formattedDifference} ${direction} the expected amount. Expected ${transaction.currency} ${formattedExpected}, received ${transaction.currency} ${formattedActual}.`,
   };
 };

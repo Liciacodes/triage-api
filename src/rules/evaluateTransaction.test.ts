@@ -60,7 +60,8 @@ describe('evaluateTransaction', () => {
         expect(issues).toEqual([{
                  issue: "settlement_mismatch",
                  severity: "high",
-                 reason: `Expected settlement of 2000 but received 3000`,
+                reason:
+  "Settlement is NGN 1,000 above the expected amount. Expected NGN 2,000, received NGN 3,000.",
         }
         
         ])

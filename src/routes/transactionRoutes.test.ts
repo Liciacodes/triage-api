@@ -214,15 +214,16 @@ describe("POST /api/transactions/evaluate", () => {
 
     expect(response.status).toBe(200);
     expect(mockedCreateAlertsForTransaction).toHaveBeenCalledWith(
-       "db-test-001",
+  "db-test-001",
   [
     {
       issue: "settlement_mismatch",
       severity: "high",
-      reason: "Expected settlement of 9850 but received 9000",
+      reason:
+        "Settlement is NGN 850 below the expected amount. Expected NGN 9,850, received NGN 9,000.",
     },
   ],
-    );
+);
   expect(response.body.alerts[0].status).toBe("OPEN");
   })
 });
