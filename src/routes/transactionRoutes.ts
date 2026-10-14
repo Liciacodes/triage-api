@@ -10,6 +10,7 @@ import {
   updateTransaction,
 } from "../services/transactionService";
 import { createAlertsForTransaction, resolveStaleAlerts } from "../services/alertService";
+import { sweepPendingTransactions } from "../services/sweepService";
 
 const router = Router();
 
@@ -55,6 +56,12 @@ router.get("/:reference", async (req, res) => {
     alerts,
     needsAttention: alerts.some((alert) => alert.status === "OPEN"),
   });
+});
+
+router.post("/sweep", async (_req, res) => {
+  const result = await sweepPendingTransactions();
+
+  return res.status(200).json(result);
 });
 
 router.post("/evaluate", async (req, res) => {

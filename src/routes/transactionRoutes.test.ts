@@ -12,6 +12,10 @@ vi.mock('../services/alertService', () => ({
  createAlertsForTransaction: vi.fn(),
 }));
 
+vi.mock("../services/sweepService", () => ({
+  sweepPendingTransactions: vi.fn(),
+}));
+
 import {
   createTransaction,
   getAllTransactions,
@@ -21,6 +25,9 @@ import {
 
 import app from "../app";
 import { createAlertsForTransaction } from "../services/alertService";
+import { sweepPendingTransactions } from "../services/sweepService";
+
+const mockedSweepPendingTransactions = vi.mocked(sweepPendingTransactions);
 
 const mockedCreateTransaction = vi.mocked(createTransaction);
 const mockedGetAllTransactions = vi.mocked(getAllTransactions);
@@ -226,4 +233,19 @@ describe("POST /api/transactions/evaluate", () => {
 );
   expect(response.body.alerts[0].status).toBe("OPEN");
   })
+});
+
+describe("POST /api/transactions/sweep", () => {
+  it("should sweep pending transactions and report the result", async () => {
+    mockedSweepPendingTransactions.mockResolvedValue({
+      checked: 3,
+      flagged: 1,
+    });
+
+    const response = await request(app).post("/api/transactions/sweep");
+
+    expect(response.status).toBe(200);
+    expect(mockedSweepPendingTransactions).toHaveBeenCalledTimes(1);
+    expect(response.body).toEqual({ checked: 3, flagged: 1 });
+  });
 });

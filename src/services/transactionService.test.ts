@@ -16,12 +16,12 @@ vi.mock("../prisma/db", () => ({
 
 
 vi.mock("./alertService", () => ({
-  getUnresolvedAlerts: vi.fn(),
+  getActiveAlerts: vi.fn(),
 }));
 
 
 import { db } from "../prisma/db";
-import { getUnresolvedAlerts } from "./alertService";
+import { getActiveAlerts } from "./alertService";
 import { getTransactionsNeedingAttention } from "./transactionService";
 
 
@@ -29,8 +29,8 @@ const mockedGetAllTransactions = vi.mocked(
   db.orm.public.Transaction.all,
 );
 
-const mockedGetUnresolvedAlerts = vi.mocked(
-  getUnresolvedAlerts,
+const mockedGetActiveAlerts = vi.mocked(
+  getActiveAlerts,
 );
 
 beforeEach(() => {
@@ -56,7 +56,7 @@ describe("getTransactionsNeedingAttention", () => {
     ]);
 
     
-    mockedGetUnresolvedAlerts.mockResolvedValue([
+    mockedGetActiveAlerts.mockResolvedValue([
       {
         id: "alert-001",
         type: "settlement_mismatch",
@@ -83,8 +83,45 @@ describe("getTransactionsNeedingAttention", () => {
         issue: "settlement_mismatch",
         severity: "high",
         reason: "Expected settlement of 9850 but received 9000",
+        status: "OPEN",
       },
     ]);
+  });
+
+  it("should keep a transaction in the queue after its alert is acknowledged", async () => {
+    mockedGetAllTransactions.mockResolvedValue([
+      {
+        id: "db-test-003",
+        reference: "ref-test-003",
+        amount: 10000,
+        currency: "NGN",
+        customerEmail: "customer@example.com",
+        status: "success",
+        expectedSettlement: 9850,
+        actualSettlement: 9000,
+        createdAt: "2026-09-02 10:00:00+00",
+        updatedAt: "2026-09-02 10:00:00+00",
+      },
+    ]);
+
+    mockedGetActiveAlerts.mockResolvedValue([
+      {
+        id: "alert-003",
+        type: "settlement_mismatch",
+        severity: "high",
+        reason: "Expected settlement of 9850 but received 9000",
+        status: 'ACKNOWLEDGED',
+        acknowledgedAt: "2026-09-02 11:00:00+00",
+        resolvedAt: null,
+        transactionId: "db-test-003",
+        createdAt: "2026-09-02 10:00:00+00",
+      },
+    ]);
+
+    const result = await getTransactionsNeedingAttention();
+
+    expect(result).toHaveLength(1);
+    expect(result[0].issues[0].status).toBe("ACKNOWLEDGED");
   });
 
   it("should return an empty array if there are no transactions with unresolved alerts", async () => {
@@ -104,7 +141,7 @@ describe("getTransactionsNeedingAttention", () => {
       },
     ]);
 
-    mockedGetUnresolvedAlerts.mockResolvedValue([]);
+    mockedGetActiveAlerts.mockResolvedValue([]);
 
     const result = await getTransactionsNeedingAttention();
 

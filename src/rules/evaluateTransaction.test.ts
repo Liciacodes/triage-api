@@ -1,8 +1,11 @@
-import {describe, expect, it} from "vitest";
+import {afterEach, describe, expect, it, vi} from "vitest";
 import {evaluateTransaction} from "./evaluateTransaction";
 
 import type {Transaction } from "../types/transaction";
 
+afterEach(() => {
+    vi.unstubAllEnvs();
+});
 
 describe('evaluateTransaction', () => {
     it('should return an empty array when there are no issues', () => {
@@ -39,6 +42,46 @@ describe('evaluateTransaction', () => {
                 reason: 'Transaction has been pending for longer than 24 hours.',
             }
         ]);
+    })
+
+    it('should use the configured stuck pending threshold', () => {
+        vi.stubEnv('STUCK_PENDING_THRESHOLD_HOURS', '2');
+
+        const transaction: Transaction = {
+            id: 'txn-004',
+            reference: 'ref-004',
+            amount: 10000,
+            currency: 'NGN',
+            customerEmail: 'customer@example.com',
+            status: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
+        }
+        const issues = evaluateTransaction(transaction);
+        expect(issues).toEqual([
+            {
+                issue: 'stuck_pending',
+                severity: 'medium',
+                reason: 'Transaction has been pending for longer than 2 hours.',
+            }
+        ]);
+    })
+
+    it('should fall back to 24 hours when the configured threshold is invalid', () => {
+        vi.stubEnv('STUCK_PENDING_THRESHOLD_HOURS', 'soon');
+
+        const transaction: Transaction = {
+            id: 'txn-005',
+            reference: 'ref-005',
+            amount: 10000,
+            currency: 'NGN',
+            customerEmail: 'customer@example.com',
+            status: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
+        }
+        const issues = evaluateTransaction(transaction);
+        expect(issues).toEqual([]);
     })
 
     it("should return settlement mismatch issue when settlement amount differ", () => {

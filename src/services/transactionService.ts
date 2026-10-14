@@ -4,7 +4,7 @@ import {
   transactionSchema,
   type ValidatedTransaction,
 } from "../schemas/transactionSchema";
-import { getUnresolvedAlerts } from "./alertService";
+import { getActiveAlerts } from "./alertService";
 
 export const createTransaction = async (transaction: ValidatedTransaction) => {
   return db.orm.public.Transaction.create({
@@ -30,11 +30,11 @@ export const getTransactionByReference = async (reference: string) => {
 
 export const getTransactionsNeedingAttention = async () => {
   const transactions = await getAllTransactions();
-  const unresolvedAlerts = await getUnresolvedAlerts();
+  const activeAlerts = await getActiveAlerts();
 
   return transactions
     .map((transaction) => {
-    const alerts = unresolvedAlerts.filter(
+    const alerts = activeAlerts.filter(
       (alert) => alert.transactionId === transaction.id
       );
 
@@ -43,7 +43,8 @@ export const getTransactionsNeedingAttention = async () => {
         issues: alerts.map((alert) => ({
           issue: alert.type,
           severity: alert.severity,
-          reason: alert.reason, 
+          reason: alert.reason,
+          status: alert.status,
         }))
       };
       })

@@ -4,11 +4,15 @@ import type {RuleResult} from '../types/rule';
 import { checkSettlementMismatch } from './checkSettlementMismatch';
 import { checkFailedTransaction } from './checkFailedTransaction';
 import { checkReversedTransaction } from './checkReversedTransaction';
+import { getStuckPendingThresholdHours } from '../config/ruleConfig';
 
 export const evaluateTransaction = (transaction: Transaction): RuleResult[] => {
 const issues: RuleResult[] = []
 
-const stuckPendingResult = checkStuckPending(transaction, 24);
+const stuckPendingResult = checkStuckPending(
+    transaction,
+    getStuckPendingThresholdHours(),
+);
 if (stuckPendingResult) {
     issues.push(stuckPendingResult);
 }

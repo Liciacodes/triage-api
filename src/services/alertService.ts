@@ -11,14 +11,14 @@ export const createAlertsForTransaction = async (
 
   const alerts = [];
 
+  const activeAlerts = await getActiveAlertsForTransaction(transactionId);
+
   for (const issue of issues) {
-    const existingAlert = await db.orm.public.Alert
-      .where({
-        transactionId,
-        type: issue.issue,
-        status: "OPEN",
-      })
-      .first();
+    // An acknowledged alert is still active, so reuse it instead of
+    // reopening the same issue as a new alert.
+    const existingAlert = activeAlerts.find(
+      (alert) => alert.type === issue.issue,
+    );
 
       if (existingAlert) {
   const updatedAlert = await db.orm.public.Alert
@@ -64,10 +64,15 @@ export const resolveAlert = async (alertId: string) => {
     });
 };
 
-export const getUnresolvedAlerts = async () => {
-  return db.orm.public.Alert
-    .where({ status: "OPEN" })
-    .all();
+// Acknowledged alerts are still active: the operator has seen the issue,
+// but the underlying condition has not cleared.
+export const getActiveAlerts = async () => {
+  const [openAlerts, acknowledgedAlerts] = await Promise.all([
+    db.orm.public.Alert.where({ status: "OPEN" }).all(),
+    db.orm.public.Alert.where({ status: "ACKNOWLEDGED" }).all(),
+  ]);
+
+  return [...openAlerts, ...acknowledgedAlerts];
 };
 
 export const getUnresolvedAlertsForTransaction = async (

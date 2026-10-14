@@ -83,12 +83,19 @@ When a transaction is received:
 
 This prevents retries from creating duplicate transactions or operational alerts while still allowing legitimate transaction state changes.
 
+### Pending Transaction Sweep
+
+Rules run when a transaction event arrives, so a transaction that goes quiet while pending would never be flagged on its own.
+
+Triage re-evaluates every pending transaction on startup and every 15 minutes, and creates an alert for any that have passed the stuck-pending threshold. The same sweep can be triggered on demand with `POST /api/transactions/sweep`, which is useful when the server is hosted somewhere that sleeps while idle.
+
 ## API Endpoints
 
 ### Transactions
 
 ```text
 POST /api/transactions/evaluate
+POST /api/transactions/sweep
 GET  /api/transactions
 GET  /api/transactions/attention
 GET  /api/transactions/:reference
@@ -169,6 +176,11 @@ npm install
 ### 2. Configure environment variables
 
 Create the required environment variables for your database connection and local environment.
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | PostgreSQL connection string. |
+| `STUCK_PENDING_THRESHOLD_HOURS` | No | Hours a transaction may stay pending before it is flagged. Defaults to 24. |
 
 ### 3. Start the development server
 
